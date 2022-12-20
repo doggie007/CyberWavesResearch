@@ -43,16 +43,17 @@ async def startup_event():
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome"}
+    return {"message": "Welcome to Splastic!"}
 
-# class NumpyEncoder(json.JSONEncoder):
-#     def default(self, obj):
-#         if isinstance(obj, np.ndarray):
-#             return obj.tolist()
-#         return json.JSONEncoder.default(self, obj)
 
 @app.post("/execute")
-async def execute(input_particles: Particles):
+async def execute(input_particles: Particles, forward: bool, time_duration: int, time_delta: int, output_delta: int, return_trajectory: bool):
+    # input_particles: Particles; 2D array of initial positions of trash objects in lon and lat
+    # forward: Boolean; true for stepping forward in time, false for stepping backwards in time
+    # time_duration: Integer; number of days to run algorithm eg. 30
+    # time_delta: Integer; number of minutes per step eg. 10
+    # output_delta: Integer: number of hours to record each step
+    # return_trajectory: Boolean; whether to record the trajectory of individual particles
 
     #Set up particle set
     num_particles = len(input_particles.particles)
@@ -63,13 +64,19 @@ async def execute(input_particles: Particles):
     lat = particles_list[:, 1]
     pset = ParticleSet(fieldset=field_set, pclass=JITParticle, lat= lat, lon=lon)
 
-    #Advect
     output_file = pset.ParticleFile(name=temp_file_name,
-                                    outputdt=timedelta(hours=2))
+                                outputdt=timedelta(hours=output_delta))
+    
+    #Set negative dt for running in reverse
+    if not forward:
+        time_delta = -time_delta
+    
+    #Advect using Runge-Kutta 4th order
     pset.execute(AdvectionRK4,
-                 runtime=timedelta(days=30),
-                 dt=timedelta(minutes=5),
+                 runtime=timedelta(days=time_duration),
+                 dt=timedelta(minutes=time_delta),
                  output_file=output_file,
+                 # Delete particle when out of bounds
                  recovery={ErrorCode.ErrorOutOfBounds: DeleteParticle},
                  )
 
@@ -77,22 +84,29 @@ async def execute(input_particles: Particles):
 
     #Read
     parcels = xr.open_dataset(temp_file_name)
-    # print(list(parcels["lon"].to_numpy()))
-    # print(type(list(parcels["lon"].to_numpy())))
+
     lons = parcels["lon"].to_numpy()
     lats = parcels["lat"].to_numpy()
 
-    # print(lons, lats)
+    if return_trajectory:
+        #Get list of trajectories
+        trajectories = []
+        for i in range(num_particles):
+            trajectories.append(list(zip(lons[i], lats[i])))
 
-    trajectories = []
-    for i in range(num_particles):
-        trajectories.append(list(zip(lons[i], lats[i])))
+        # print(trajectories)
+
+        json_data = json.dumps({'trajectories': trajectories})
+        return Response(content=json_data, media_type="application/json")
+    else:
+        #Pair list of start, end positions
+        #Still named trajectories for convenience
+        trajectories = []
+        for i in range(num_particles):
+            start = [lons[i][0], lats[i][0]]
+            end = [lons[i][-1], lats[i][-1]]
+            trajectories.append([start, end])
+        json_data = json.dumps({'trajectories': trajectories})
+        return Response(content=json_data, media_type="application/json")
 
 
-    # for (lon, lat) in zip(lons, lats):
-    #     trajectories
-
-    print(trajectories)
-
-    json_data = json.dumps({'trajectories': trajectories})
-    return Response(content=json_data, media_type="application/json")
