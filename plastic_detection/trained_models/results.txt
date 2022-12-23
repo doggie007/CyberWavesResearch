@@ -1,0 +1,7 @@
+With extra data included
+Test accuracy for RF: 0.98
+Test accuracy for SVM: 0.97
+
+Without extra data included
+Test accuracy for RF: 0.84
+Test accuracy for SVM: 0.84
