@@ -7,6 +7,7 @@
 
 ### SeaVision
 - Using satellite images, we detect large patches of plastics in oceans.
+- We utilize Planet's PlanetScope satellites (8 bands, 3m x 3m spatial resolution) and apply a random forest algorithm 
 
 
 Our goal is to integrate both technologies to create a novel technique for combating ocean pollution.
