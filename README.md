@@ -1,5 +1,5 @@
 ﻿# CyberWavesResearch 
-*www.cyber-waves.com*
+CyberWaves (*www.cyber-waves.com*)
 ### Splastic
 - Using ocean current data and non-probabilistic lagrangian physics ocean current models, we can find the likely source of trash in oceans, as well as the likely path ocean pollution will take.
 - We credit the use of Parcels (https://github.com/OceanParcels/parcels)
